@@ -8,6 +8,7 @@ import sys
 import time
 import types
 
+from collections import namedtuple
 from pyperf._cpu_utils import parse_cpu_list
 
 EXCLUDED = {
@@ -594,8 +595,10 @@ def main(args):
             sys.exit(1)
         decorator = record_stats
 
-    print("Benchmark                     Time      Useful Work")
+    print("Benchmark                     Time      Useful Work    Memory Info")
     results = {}
+    process = psutil.Process()
+    MemInfo = namedtuple('MemInfo', ["rss", "vms", "wset"])
     for benchmark in benchmarks:
         module_name, func_name, kind, loops, *extra = ALL_BENCHMARKS[benchmark]
         if kind == "pyston":
@@ -608,7 +611,14 @@ def main(args):
 
         results[benchmark] = time_sec * 1000
 
-        print(f"{benchmark:<28} {time_sec * 1000:6.1f} ms      ({pct:3.0f}%)")
+        mem_info_tmp = process.memory_info()
+        
+        mem_info = MemInfo(
+            rss=mem_info_tmp.rss,
+            vms=mem_info_tmp.vms,
+            wset=mem_info_tmp.wset,
+        )
+        print(f"{benchmark:<28} {time_sec * 1000:6.1f} ms      ({pct:3.0f}%)  {mem_info}")
 
     if args.record_py_stats:
         sys._stats_dump()
