@@ -1,4 +1,5 @@
 import argparse
+import gc
 import inspect
 import io
 import re
@@ -620,6 +621,9 @@ def main(args):
         )
         print(f"{benchmark:<28} {time_sec * 1000:6.1f} ms      ({pct:3.0f}%)  {mem_info}")
 
+        if args.gc:
+            gc.collect()
+
     if args.record_py_stats:
         sys._stats_dump()
         sys._stats_clear()
@@ -671,6 +675,8 @@ def cli(argv=None):
             "CPU to minimize run to run variation."
         ),
     )
+    parser.add_argument("--gc",  default=False, action="store_true",
+                        help="run garbage collector after each benchmark")
     parser.add_argument("--record-py-stats",  default=False, action="store_true",
                         help="record py stats while benchmarks are running")
     parser.add_argument("--save-baselines", type=str, default=None,
