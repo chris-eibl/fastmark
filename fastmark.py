@@ -3,9 +3,12 @@ import inspect
 import io
 import re
 import os
+import psutil
 import sys
 import time
 import types
+
+from pyperf._cpu_utils import parse_cpu_list
 
 EXCLUDED = {
     "asyncio_tcp",
@@ -648,6 +651,16 @@ def cli(argv=None):
                         help="work scale factor for the benchmark (default=100)")
     parser.add_argument("--json", type=str, default=None,
                         help="save results as JSON to the specified path")
+    parser.add_argument(
+        "--affinity",
+        metavar="CPU_LIST",
+        default=None,
+        help=(
+            "Specify CPU affinity for benchmark runs. This "
+            "way, benchmarks can be forced to run on a given "
+            "CPU to minimize run to run variation."
+        ),
+    )
     parser.add_argument("--record-py-stats",  default=False, action="store_true",
                         help="record py stats while benchmarks are running")
     parser.add_argument("--save-baselines", type=str, default=None,
@@ -655,6 +668,10 @@ def cli(argv=None):
     parser.add_argument("benchmarks", nargs="*",
                         help="benchmarks to run")
     options = parser.parse_args(argv)
+    if options.affinity:
+        cpus = parse_cpu_list(options.affinity)
+        p = psutil.Process()
+        p.cpu_affinity(cpus)
     main(options)
 
 
