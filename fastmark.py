@@ -605,30 +605,34 @@ def main(args):
         if kind == "pyston":
             continue
 
-        start = time.perf_counter()
-        time_sec = run_one_benchmark(benchmark, args.scale, decorator)
-        true_time = time.perf_counter() - start
-        pct = (time_sec / true_time) * 100
+        for i in range(args.num):
+            start = time.perf_counter()
+            time_sec = run_one_benchmark(benchmark, args.scale, decorator)
+            true_time = time.perf_counter() - start
+            pct = (time_sec / true_time) * 100
 
-        results[benchmark] = time_sec * 1000
+            if args.num == 1:
+                results[benchmark] = time_sec * 1000
+            else:
+                results.setdefault(benchmark, []).append(time_sec)
 
-        mem_info_tmp = process.memory_info()
-        
-        mem_info = MemInfo(
-            rss=mem_info_tmp.rss,
-            vms=mem_info_tmp.vms,
-            wset=mem_info_tmp.wset,
-        )
-        print(f"{benchmark:<28} {time_sec * 1000:6.1f} ms      ({pct:3.0f}%)  {mem_info}")
+            mem_info_tmp = process.memory_info()
+            
+            mem_info = MemInfo(
+                rss=mem_info_tmp.rss,
+                vms=mem_info_tmp.vms,
+                wset=mem_info_tmp.wset,
+            )
+            print(f"{benchmark:<28} {time_sec * 1000:6.1f} ms      ({pct:3.0f}%)  {mem_info}")
 
-        if args.gc:
-            gc.collect()
+            if args.gc:
+                gc.collect()
 
     if args.record_py_stats:
         sys._stats_dump()
         sys._stats_clear()
 
-    if not args.benchmarks:
+    if not args.benchmarks and args.num == 1:
         # Compute score
         try:
             import fastmark.baselines as baselines
@@ -659,12 +663,36 @@ def main(args):
         with open(args.json, "w") as f:
             json.dump(results, f, indent=2)
 
+    if args.pyperf:
+        import json
+        from pyperf._collect_metadata import collect_metadata
+        metadata = collect_metadata()
+        metadata["command"] = " ".join(sys.argv)
+        metadata["unit"] = "second"
+        pyperf_results = {
+            "version": "1.0",
+            "metadata": metadata
+        }
+        for bm, values in results.items():
+            bm_dict = {
+                "metadata": {"name": bm}}
+            pyperf_results.setdefault("benchmarks", []).append(bm_dict)
+            bm_dict["runs"] = [{"values": values}]
+        with open(args.pyperf, "w") as f:
+            json.dump(pyperf_results, f, indent=2)
+
+
 def cli(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--scale", type=int, default=100,
                         help="work scale factor for the benchmark (default=100)")
     parser.add_argument("--json", type=str, default=None,
                         help="save results as JSON to the specified path")
+    parser.add_argument("--pyperf", type=str, default=None,
+                        help="save results as pyperf JSON to the specified path")
+    parser.add_argument("--num", type=int, default=0,
+                        help="number of iterations per benchmarks. "
+                             "default: 5 for --pyperf, else 1")
     parser.add_argument(
         "--affinity",
         metavar="CPU_LIST",
@@ -684,10 +712,28 @@ def cli(argv=None):
     parser.add_argument("benchmarks", nargs="*",
                         help="benchmarks to run")
     options = parser.parse_args(argv)
+
     if options.affinity:
         cpus = parse_cpu_list(options.affinity)
         p = psutil.Process()
         p.cpu_affinity(cpus)
+
+    if options.pyperf:
+        if options.json:
+            raise argparse.ArgumentTypeError("--json conflicts with --pyperf")
+
+        if options.num == 1:
+            raise argparse.ArgumentTypeError("--pyperf needs --num > 1")
+        elif options.num == 0:
+            # default
+            options.num = 5
+    else:
+        if options.num > 1:
+            print("warning: --num > 1")
+        else:
+            # default
+            options.num = 1
+
     main(options)
 
 
