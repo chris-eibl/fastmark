@@ -600,7 +600,7 @@ def main(args):
     results = {}
     process = psutil.Process()
     MemInfo = namedtuple('MemInfo', ["rss", "vms", "wset"])
-    for benchmark in benchmarks:
+    for benchmark in sorted(benchmarks, reverse=args.reverse):
         module_name, func_name, kind, loops, *extra = ALL_BENCHMARKS[benchmark]
         if kind == "pyston":
             continue
@@ -705,6 +705,8 @@ def cli(argv=None):
     )
     parser.add_argument("--gc",  default=False, action="store_true",
                         help="run garbage collector after each benchmark")
+    parser.add_argument("--reverse",  default=False, action="store_true",
+                        help="run the benchmarks in reverse order")
     parser.add_argument("--record-py-stats",  default=False, action="store_true",
                         help="record py stats while benchmarks are running")
     parser.add_argument("--save-baselines", type=str, default=None,
