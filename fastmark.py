@@ -309,11 +309,14 @@ def json_loads_args():
     return (objs,)
 
 def logging_args():
-    stream = io.StringIO()
-
     import logging
-    handler = logging.StreamHandler(stream=stream)
     logger = logging.getLogger("benchlogger")
+    if logger.handlers:
+        # prevent recreating further streams
+        # and re-adding handlers
+        return logger, logger.handlers[0].stream
+    stream = io.StringIO()
+    handler = logging.StreamHandler(stream=stream)
     logger.propagate = False
     logger.addHandler(handler)
     logger.setLevel(logging.WARNING)
