@@ -625,8 +625,8 @@ def main(args):
             )
             print(f"{benchmark:<28} {time_sec * 1000:6.1f} ms      ({pct:3.0f}%)  {mem_info}")
 
-            if args.gc:
-                gc.collect()
+        if args.gc:
+            gc.collect()
 
     if args.record_py_stats:
         sys._stats_dump()
