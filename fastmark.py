@@ -627,7 +627,8 @@ def main(args):
 
         if args.gc:
             gc.collect()
-
+        if args.clear_internal_caches:
+            sys._clear_internal_caches()
     if args.record_py_stats:
         sys._stats_dump()
         sys._stats_clear()
@@ -705,6 +706,8 @@ def cli(argv=None):
     )
     parser.add_argument("--gc",  default=False, action="store_true",
                         help="run garbage collector after each benchmark")
+    parser.add_argument("--clear-internal-caches",  default=False, action="store_true",
+                        help="clear internal caches after each benchmark")
     parser.add_argument("--reverse",  default=False, action="store_true",
                         help="run the benchmarks in reverse order")
     parser.add_argument("--record-py-stats",  default=False, action="store_true",
