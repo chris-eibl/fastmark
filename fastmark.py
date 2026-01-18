@@ -608,30 +608,36 @@ def main(args):
         if kind == "pyston":
             continue
 
-        for i in range(args.num):
+        num_warm_done = 0
+        for i in range(args.num_warm + args.num):
             start = time.perf_counter()
             time_sec = run_one_benchmark(benchmark, args.scale, decorator)
             true_time = time.perf_counter() - start
             pct = (time_sec / true_time) * 100
 
-            if args.num == 1:
-                results[benchmark] = time_sec * 1000
+            if num_warm_done >= args.num_warm:
+                bm_display = benchmark
+                if args.num == 1:
+                    results[benchmark] = time_sec * 1000
+                else:
+                    results.setdefault(benchmark, []).append(time_sec)
             else:
-                results.setdefault(benchmark, []).append(time_sec)
+                num_warm_done += 1
+                bm_display = benchmark + " (w)"
 
             mem_info_tmp = process.memory_info()
-            
             mem_info = MemInfo(
                 rss=mem_info_tmp.rss,
                 vms=mem_info_tmp.vms,
                 wset=mem_info_tmp.wset,
             )
-            print(f"{benchmark:<28} {time_sec * 1000:6.1f} ms      ({pct:3.0f}%)  {mem_info}")
+            print(f"{bm_display:<28} {time_sec * 1000:6.1f} ms      ({pct:3.0f}%)  {mem_info}")
 
         if args.gc:
             gc.collect()
         if args.clear_internal_caches:
             sys._clear_internal_caches()
+
     if args.record_py_stats:
         sys._stats_dump()
         sys._stats_clear()
@@ -697,6 +703,8 @@ def cli(argv=None):
     parser.add_argument("--num", type=int, default=0,
                         help="number of iterations per benchmarks. "
                              "default: 5 for --pyperf, else 1")
+    parser.add_argument("--num-warm", type=int, default=0,
+                        help="number of warmups per benchmarks (default=0)")
     parser.add_argument(
         "--affinity",
         metavar="CPU_LIST",
