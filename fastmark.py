@@ -1,3 +1,26 @@
+# many_optionals runs about 25% faster in sub processes, because
+# * _colorize.can_colorize
+# * shutil.get_terminal_size()
+# are much faster due to pipe redirection.
+# FWIW: bm_many_optionals is actually testing subparsers
+# and bm_subparsers is testing 1000 options ...
+
+# TODO: can be done by passing a custom 
+# formatter_class=FixedWidthHelpFormatter
+# and color=False in bm_argparse
+
+# Begin mocking for many_optionals
+# This must be done before argparse is imported!
+import shutil
+def mock_terminal():
+    class dummy:
+        columns = 80
+    return dummy
+shutil.get_terminal_size = mock_terminal
+import _colorize
+_colorize.can_colorize = lambda file : False
+# End mocking for many_optionals
+
 import argparse
 import gc
 import inspect
@@ -21,13 +44,6 @@ EXCLUDED = {
     # benchmarks when not run in sub processes
     "create_gc_cycles",
     "gc_traversal",
-    # many_optionals runs about 25% faster in sub processes, because
-    # * _colorize.can_colorize
-    # * shutil.get_terminal_size()
-    # are much faster due to pipe redirection.
-    # FWIW: bm_many_optionals is actually testing subparsers
-    # and bm_subparsers is testing 1000 options ...
-    "many_optionals"
 }
 
 def ADD_PATH(path):
