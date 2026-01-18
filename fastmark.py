@@ -17,6 +17,17 @@ EXCLUDED = {
     "asyncio_tcp_ssl",
     "bench_mp_pool",        # uses subprocess
     "bench_thread_pool",    # for now
+    # the gc benchmarks are much slower and can influence other
+    # benchmarks when not run in sub processes
+    "create_gc_cycles",
+    "gc_traversal",
+    # many_optionals runs about 25% faster in sub processes, because
+    # * _colorize.can_colorize
+    # * shutil.get_terminal_size()
+    # are much faster due to pipe redirection.
+    # FWIW: bm_many_optionals is actually testing subparsers
+    # and bm_subparsers is testing 1000 options ...
+    "many_optionals"
 }
 
 def ADD_PATH(path):
