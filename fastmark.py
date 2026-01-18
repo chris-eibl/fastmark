@@ -642,14 +642,18 @@ def main(args):
                 "--scale", str(args.scale),
                 "--num", str(args.num),
                 "--num-warm", str(args.num_warm),
-                "--affinity", str(args.affinity),
                 benchmark]
+            if args.affinity is not None:
+                pargs.extend(["--affinity", str(args.affinity)])
             p = subprocess.Popen(
                 pargs,
                 universal_newlines=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE)
             outs, errs = p.communicate()
+            if p.returncode != 0:
+                print(f"{benchmark} failed: {errs}")
+                continue
             result_lines = outs.splitlines()[-(args.num_warm + args.num):]
             print("\n".join(result_lines))
             result_vals = [float(x.split()[1]) / 1000 for x in result_lines[-args.num:]]
