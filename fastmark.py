@@ -2,6 +2,7 @@
 # * _colorize.can_colorize
 # * shutil.get_terminal_size()
 # are much faster due to pipe redirection.
+# Seems to be only an issue on Windows, though.
 # FWIW: bm_many_optionals is actually testing subparsers
 # and bm_subparsers is testing 1000 options ...
 
@@ -626,10 +627,10 @@ def main(args):
             sys.exit(1)
         decorator = record_stats
 
-    print("Benchmark                     Time      Useful Work    Memory Info")
+    print("Benchmark                       Time      Useful Work    Memory Info")
     results = {}
     process = psutil.Process()
-    MemInfo = namedtuple('MemInfo', ["rss", "vms", "wset"])
+    MemInfo = namedtuple('MemInfo', ["rss", "vms"])
     for benchmark in sorted(benchmarks, reverse=args.reverse):
         module_name, func_name, kind, loops, *extra = ALL_BENCHMARKS[benchmark]
         if kind == "pyston":
@@ -684,9 +685,8 @@ def main(args):
             mem_info = MemInfo(
                 rss=mem_info_tmp.rss,
                 vms=mem_info_tmp.vms,
-                wset=mem_info_tmp.wset,
             )
-            print(f"{bm_display:<28} {time_sec * 1000:6.1f} ms      ({pct:3.0f}%)  {mem_info}")
+            print(f"{bm_display:<30} {time_sec * 1000:6.1f} ms      ({pct:3.0f}%)  {mem_info}")
 
         if args.gc:
             gc.collect()
