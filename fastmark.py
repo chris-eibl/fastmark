@@ -608,6 +608,30 @@ def main(args):
         if kind == "pyston":
             continue
 
+        if args.subprocess:
+            import subprocess
+            pargs = [
+                sys.executable, __file__,
+                "--scale", str(args.scale),
+                "--num", str(args.num),
+                "--num-warm", str(args.num_warm),
+                "--affinity", str(args.affinity),
+                benchmark]
+            p = subprocess.Popen(
+                pargs,
+                universal_newlines=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE)
+            outs, errs = p.communicate()
+            result_lines = outs.splitlines()[-(args.num_warm + args.num):]
+            print("\n".join(result_lines))
+            result_vals = [float(x.split()[1]) / 1000 for x in result_lines[-args.num:]]
+            if args.num == 1:
+                results[benchmark] = result_vals[0]
+            else:
+                results[benchmark] = result_vals
+            continue
+
         num_warm_done = 0
         for i in range(args.num_warm + args.num):
             start = time.perf_counter()
@@ -721,6 +745,8 @@ def cli(argv=None):
                         help="clear internal caches after each benchmark")
     parser.add_argument("--reverse",  default=False, action="store_true",
                         help="run the benchmarks in reverse order")
+    parser.add_argument("--subprocess",  default=False, action="store_true",
+                        help="run benchmarks in subprocess")
     parser.add_argument("--record-py-stats",  default=False, action="store_true",
                         help="record py stats while benchmarks are running")
     parser.add_argument("--save-baselines", type=str, default=None,
